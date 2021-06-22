@@ -1,5 +1,7 @@
 def nmap(task_id, command):
 
+    sudo = "bubiman10"
+
     ip = requests.get('https://api.ipify.org').text
     print('My public IP address is: {}'.format(ip))
 
