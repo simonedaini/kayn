@@ -1,7 +1,6 @@
-from CommandBase import *
+from mythic_payloadtype_container.MythicCommandBase import *
 import json
-from MythicFileRPC import *
-
+from mythic_payloadtype_container.MythicRPC import *
 
 class ShellArguments(TaskArguments):
     def __init__(self, command_line):
@@ -20,12 +19,7 @@ class ShellCommand(CommandBase):
     help_cmd = "shell cmd"
     description = "Run cmd into a shell and return the result"
     version = 1
-    is_exit = False
-    is_file_browse = False
-    is_process_list = False
-    is_download_file = False
-    is_remove_file = False
-    is_upload_file = False
+    supported_ui_features = [""]
     author = "@Kayn93"
     parameters = []
     attackmapping = []

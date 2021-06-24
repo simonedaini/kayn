@@ -2,7 +2,7 @@ from mythic_payloadtype_container.MythicCommandBase import *
 import json
 
 
-class NmapArguments(TaskArguments):
+class RedirectArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {}
@@ -11,15 +11,15 @@ class NmapArguments(TaskArguments):
         pass
 
 
-class NmapCommand(CommandBase):
-    cmd = "nmap"
+class RedirectCommand(CommandBase):
+    cmd = "redirect"
     needs_admin = False
     help_cmd = "nmap"
-    description = "returns SSH credentials and triggers the execution of Nmap over through the tunnel"
+    description = "Change address:port of the server that the agent communicates with"
     version = 1
     supported_ui_features = [""]
     author = "@Kayn93"
-    argument_class = NmapArguments
+    argument_class = RedirectArguments
     attackmapping = []
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
