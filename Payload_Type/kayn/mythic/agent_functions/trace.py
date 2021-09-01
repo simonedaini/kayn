@@ -2,7 +2,7 @@ from mythic_payloadtype_container.MythicCommandBase import *
 import json
 
 
-class KeylogArguments(TaskArguments):
+class TraceArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {}
@@ -11,15 +11,15 @@ class KeylogArguments(TaskArguments):
         pass
 
 
-class KeylogCommand(CommandBase):
-    cmd = "keylog"
+class TraceCommand(CommandBase):
+    cmd = "trace"
     needs_admin = False
-    help_cmd = "keylog"
-    description = "Keylog users as root on Linux."
+    help_cmd = "trace"
+    description = "returns the path to reach the agent"
     version = 1
-    supported_ui_features = []
+    supported_ui_features = [""]
     author = "@Kayn93"
-    argument_class = KeylogArguments
+    argument_class = TraceArguments
     attackmapping = []
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
