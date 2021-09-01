@@ -1,12 +1,10 @@
-def exit_agent(task_id):
-
+def parallel(task_id, file_name, workers, parameters={}):
+    
     response = {
             'task_id': task_id,
-            "user_output": "Exited",
+            "user_output": "Command received",
             'completed': True
         }
     responses.append(response)
 
-    print("\t- Exit Done")
-
-    sys.exit()
+    return

