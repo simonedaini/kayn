@@ -1,0 +1,9 @@
+cryptography==2.8
+mythic==0.0.25
+pexpect==4.6.0
+pycryptodome==3.12.0
+pynput==1.7.5
+python-xlib==0.31
+requests==2.22.0
+termcolor==1.1.0
+
